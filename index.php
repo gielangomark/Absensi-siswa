@@ -88,13 +88,20 @@ $alpha_bulanan_percentage = ($total_siswa > 0) ? round(($alpha_bulanan_count / $
     <?php if ($logged_in): ?>
         <div class="sidebar">
     <div class="logo">
-        <img src="assets/images/40.png" alt="Logo Sekolah" class="img-fluid" width="150px" style="margin-left:45px;">
+        <img src="assets/images/40.png" alt="Logo Sekolah" class="img-fluid">
     </div>
-        <a href="index.php"><i class="fas fa-tachometer-alt mr-2"></i> Dashboard</a>
-        <a href="siswa.php"><i class="fas fa-users mr-2"></i> Data Siswa</a>
-        <a href="absensi.php"><i class="fas fa-calendar-check mr-2"></i> Absensi Siswa</a>
-        <a href="logout.php" id="logoutLink" class="logout-link"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
+
+    <div class="menu">
+        <a href="index.php"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+        <a href="siswa.php"><i class="fas fa-users"></i> Data Siswa</a>
+        <a href="absensi.php"><i class="fas fa-calendar-check"></i> Absensi Siswa</a>
     </div>
+
+    <button class="logout-btn" onclick="window.location.href='logout.php'">
+        <i class="fas fa-sign-out-alt"></i> Logout
+    </button>
+</div>
+
     <?php endif; ?>
     <div class="main-content">
         <?php if (isset($_GET['login_success']) && $_GET['login_success'] == 'true'): ?>

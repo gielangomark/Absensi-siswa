@@ -7,42 +7,70 @@ body {
 }
 
 .sidebar {
-    height: 100%;
+    height: 100vh;
     width: 250px;
     position: fixed;
-    z-index: 1;
     top: 0;
     left: 0;
-    background-color: #16557f91;
-    overflow-x: hidden;
-    padding-top: 20px;
+    background-color: #16557f;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    align-items: center;
+    padding-top: 20px;
+    padding-bottom: 20px;
 }
 
 .sidebar .logo img {
-    max-width: 100%;
+    width: 120px;
     height: auto;
-    padding: 10px;
+    margin-bottom: 30px; /* Tambah jarak bawah logo */
+}
+
+.menu {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 20px; /* Tambah jarak antar menu */
 }
 
 .sidebar a {
-    padding: 10px 15px;
+    width: 100%;
+    padding: 14px 20px;
     text-decoration: none;
     font-size: 18px;
     color: white;
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
 .sidebar a:hover {
     background-color: #2980b9;
 }
 
-.sidebar .logout-link {
-    margin-top: 20px;
+/* Tombol Logout */
+.logout-btn {
+    margin-top: auto;
+    width: 80%;
+    padding: 12px;
+    background-color: red;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
     text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
 }
+
+.logout-btn:hover {
+    background-color: darkred;
+}
+
 
 .main-content {
     margin-left: 250px;
