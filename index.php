@@ -1,73 +1,148 @@
-<!-- index.php -->
 <?php
 include 'config.php';
-// Cek apakah admin sudah login
+// Check if admin is logged in
 $logged_in = isset($_SESSION['admin']);
 
-// Ambil data siswa
+// Get student data
 $siswa_result = $conn->query("SELECT * FROM siswa");
 if (!$siswa_result) {
-    die("Query gagal: " . $conn->error);
+    die("Query failed: " . $conn->error);
 }
 
-// Inisialisasi tanggal filter
+// Initialize filter date
 $tanggal_filter = isset($_GET['tanggal']) ? $_GET['tanggal'] : date('Y-m-d');
 
-// Ambil absensi per hari ini
+// Get today's attendance
 $tanggal_hari_ini = date('Y-m-d');
-$absensi_hari_ini_result = $conn->query("SELECT absensi.id, siswa.id AS siswa_id, siswa.nama, absensi.status, absensi.tanggal 
+$absensi_hari_ini_result = $conn->prepare("SELECT absensi.id, siswa.id AS siswa_id, siswa.nama, absensi.status, absensi.tanggal 
                                         FROM absensi 
                                         JOIN siswa ON absensi.nis = siswa.nis 
-                                        WHERE DATE(absensi.tanggal) = '$tanggal_hari_ini'");
+                                        WHERE DATE(absensi.tanggal) = ?");
+$absensi_hari_ini_result->bind_param("s", $tanggal_hari_ini);
+$absensi_hari_ini_result->execute();
+$absensi_hari_ini_result = $absensi_hari_ini_result->get_result();
 if (!$absensi_hari_ini_result) {
-    die("Query gagal: " . $conn->error);
+    die("Query failed: " . $conn->error);
 }
 
-// Hitung presentase kehadiran hari ini
+// Calculate today's attendance percentages
 $total_siswa = $siswa_result->num_rows;
-$hadir_count = $conn->query("SELECT COUNT(*) AS hadir FROM absensi WHERE status = 'Hadir' AND DATE(tanggal) = '$tanggal_hari_ini'")->fetch_assoc()['hadir'];
-$sakit_count = $conn->query("SELECT COUNT(*) AS sakit FROM absensi WHERE status = 'Sakit' AND DATE(tanggal) = '$tanggal_hari_ini'")->fetch_assoc()['sakit'];
-$terlambat_count = $conn->query("SELECT COUNT(*) AS terlambat FROM absensi WHERE status = 'Terlambat' AND DATE(tanggal) = '$tanggal_hari_ini'")->fetch_assoc()['terlambat'];
-$alpha_count = $conn->query("SELECT COUNT(*) AS alpha FROM absensi WHERE status = 'Alpha' AND DATE(tanggal) = '$tanggal_hari_ini'")->fetch_assoc()['alpha'];
+
+// Prepared statement for count queries
+$count_stmt = $conn->prepare("SELECT COUNT(*) AS count FROM absensi WHERE status = ? AND DATE(tanggal) = ?");
+
+// Get today's counts
+$count_stmt->bind_param("ss", $status, $tanggal_hari_ini);
+
+$status = 'Hadir';
+$count_stmt->execute();
+$result = $count_stmt->get_result();
+$hadir_count = $result->fetch_assoc()['count'];
+
+$status = 'Sakit';
+$count_stmt->execute();
+$result = $count_stmt->get_result();
+$sakit_count = $result->fetch_assoc()['count'];
+
+$status = 'Terlambat';
+$count_stmt->execute();
+$result = $count_stmt->get_result();
+$terlambat_count = $result->fetch_assoc()['count'];
+
+$status = 'Alpha';
+$count_stmt->execute();
+$result = $count_stmt->get_result();
+$alpha_count = $result->fetch_assoc()['count'];
+
+// Calculate percentages
 $hadir_percentage = ($total_siswa > 0) ? round(($hadir_count / $total_siswa) * 100, 2) : 0;
 $sakit_percentage = ($total_siswa > 0) ? round(($sakit_count / $total_siswa) * 100, 2) : 0;
 $terlambat_percentage = ($total_siswa > 0) ? round(($terlambat_count / $total_siswa) * 100, 2) : 0;
 $alpha_percentage = ($total_siswa > 0) ? round(($alpha_count / $total_siswa) * 100, 2) : 0;
 
-// Rekapan absensi berdasarkan tanggal yang dipilih
-$absensi_filter_result = $conn->query("SELECT absensi.id, siswa.id AS siswa_id, siswa.nama, absensi.status, absensi.tanggal 
+// Get filtered attendance data
+$absensi_filter_result = $conn->prepare("SELECT absensi.id, siswa.id AS siswa_id, siswa.nama, absensi.status, absensi.tanggal 
                                       FROM absensi 
                                       JOIN siswa ON absensi.nis = siswa.nis 
-                                      WHERE DATE(absensi.tanggal) = '$tanggal_filter'");
+                                      WHERE DATE(absensi.tanggal) = ?");
+$absensi_filter_result->bind_param("s", $tanggal_filter);
+$absensi_filter_result->execute();
+$absensi_filter_result = $absensi_filter_result->get_result();
 if (!$absensi_filter_result) {
-    die("Query gagal: " . $conn->error);
+    die("Query failed: " . $conn->error);
 }
 
-// Hitung presentase kehadiran berdasarkan tanggal yang dipilih
-$hadir_filter_count = $conn->query("SELECT COUNT(*) AS hadir FROM absensi WHERE status = 'Hadir' AND DATE(tanggal) = '$tanggal_filter'")->fetch_assoc()['hadir'];
-$sakit_filter_count = $conn->query("SELECT COUNT(*) AS sakit FROM absensi WHERE status = 'Sakit' AND DATE(tanggal) = '$tanggal_filter'")->fetch_assoc()['sakit'];
-$terlambat_filter_count = $conn->query("SELECT COUNT(*) AS terlambat FROM absensi WHERE status = 'Terlambat' AND DATE(tanggal) = '$tanggal_filter'")->fetch_assoc()['terlambat'];
-$alpha_filter_count = $conn->query("SELECT COUNT(*) AS alpha FROM absensi WHERE status = 'Alpha' AND DATE(tanggal) = '$tanggal_filter'")->fetch_assoc()['alpha'];
+// Get filtered count data
+$count_stmt->bind_param("ss", $status, $tanggal_filter);
+
+$status = 'Hadir';
+$count_stmt->execute();
+$result = $count_stmt->get_result();
+$hadir_filter_count = $result->fetch_assoc()['count'];
+
+$status = 'Sakit';
+$count_stmt->execute();
+$result = $count_stmt->get_result();
+$sakit_filter_count = $result->fetch_assoc()['count'];
+
+$status = 'Terlambat';
+$count_stmt->execute();
+$result = $count_stmt->get_result();
+$terlambat_filter_count = $result->fetch_assoc()['count'];
+
+$status = 'Alpha';
+$count_stmt->execute();
+$result = $count_stmt->get_result();
+$alpha_filter_count = $result->fetch_assoc()['count'];
+
+// Calculate filtered percentages
 $hadir_filter_percentage = ($total_siswa > 0) ? round(($hadir_filter_count / $total_siswa) * 100, 2) : 0;
 $sakit_filter_percentage = ($total_siswa > 0) ? round(($sakit_filter_count / $total_siswa) * 100, 2) : 0;
 $terlambat_filter_percentage = ($total_siswa > 0) ? round(($terlambat_filter_count / $total_siswa) * 100, 2) : 0;
 $alpha_filter_percentage = ($total_siswa > 0) ? round(($alpha_filter_count / $total_siswa) * 100, 2) : 0;
 
-// Rekapan absensi bulanan
+// Monthly attendance recap
 $bulan_tahun = date('Y-m');
-$absensi_bulanan_result = $conn->query("SELECT absensi.id, siswa.id AS siswa_id, siswa.nama, absensi.status, absensi.tanggal 
+
+// Monthly count query with prepared statement
+$monthly_count_stmt = $conn->prepare("SELECT COUNT(*) AS count FROM absensi WHERE status = ? AND DATE_FORMAT(tanggal, '%Y-%m') = ?");
+
+// Get monthly attendance data
+$absensi_bulanan_result = $conn->prepare("SELECT absensi.id, siswa.id AS siswa_id, siswa.nama, absensi.status, absensi.tanggal 
                                         FROM absensi 
                                         JOIN siswa ON absensi.nis = siswa.nis 
-                                        WHERE DATE_FORMAT(absensi.tanggal, '%Y-%m') = '$bulan_tahun'");
+                                        WHERE DATE_FORMAT(absensi.tanggal, '%Y-%m') = ?");
+$absensi_bulanan_result->bind_param("s", $bulan_tahun);
+$absensi_bulanan_result->execute();
+$absensi_bulanan_result = $absensi_bulanan_result->get_result();
 if (!$absensi_bulanan_result) {
-    die("Query gagal: " . $conn->error);
+    die("Query failed: " . $conn->error);
 }
 
-// Hitung presentase kehadiran bulanan
-$hadir_bulanan_count = $conn->query("SELECT COUNT(*) AS hadir FROM absensi WHERE status = 'Hadir' AND DATE_FORMAT(tanggal, '%Y-%m') = '$bulan_tahun'")->fetch_assoc()['hadir'];
-$sakit_bulanan_count = $conn->query("SELECT COUNT(*) AS sakit FROM absensi WHERE status = 'Sakit' AND DATE_FORMAT(tanggal, '%Y-%m') = '$bulan_tahun'")->fetch_assoc()['sakit'];
-$terlambat_bulanan_count = $conn->query("SELECT COUNT(*) AS terlambat FROM absensi WHERE status = 'Terlambat' AND DATE_FORMAT(tanggal, '%Y-%m') = '$bulan_tahun'")->fetch_assoc()['terlambat'];
-$alpha_bulanan_count = $conn->query("SELECT COUNT(*) AS alpha FROM absensi WHERE status = 'Alpha' AND DATE_FORMAT(tanggal, '%Y-%m') = '$bulan_tahun'")->fetch_assoc()['alpha'];
+// Get monthly counts
+$monthly_count_stmt->bind_param("ss", $status, $bulan_tahun);
+
+$status = 'Hadir';
+$monthly_count_stmt->execute();
+$result = $monthly_count_stmt->get_result();
+$hadir_bulanan_count = $result->fetch_assoc()['count'];
+
+$status = 'Sakit';
+$monthly_count_stmt->execute();
+$result = $monthly_count_stmt->get_result();
+$sakit_bulanan_count = $result->fetch_assoc()['count'];
+
+$status = 'Terlambat';
+$monthly_count_stmt->execute();
+$result = $monthly_count_stmt->get_result();
+$terlambat_bulanan_count = $result->fetch_assoc()['count'];
+
+$status = 'Alpha';
+$monthly_count_stmt->execute();
+$result = $monthly_count_stmt->get_result();
+$alpha_bulanan_count = $result->fetch_assoc()['count'];
+
+// Calculate monthly percentages
 $hadir_bulanan_percentage = ($total_siswa > 0) ? round(($hadir_bulanan_count / $total_siswa) * 100, 2) : 0;
 $sakit_bulanan_percentage = ($total_siswa > 0) ? round(($sakit_bulanan_count / $total_siswa) * 100, 2) : 0;
 $terlambat_bulanan_percentage = ($total_siswa > 0) ? round(($terlambat_bulanan_count / $total_siswa) * 100, 2) : 0;
@@ -180,7 +255,7 @@ $alpha_bulanan_percentage = ($total_siswa > 0) ? round(($alpha_bulanan_count / $
                 <form method="GET" action="index.php" class="mb-3">
                     <div class="form-group">
                         <label for="tanggal">Tanggal</label>
-                        <input type="date" class="form-control" id="tanggal" name="tanggal" value="<?= $tanggal_filter ?>" required>
+                        <input type="date" class="form-control" id="tanggal" name="tanggal" value="<?= htmlspecialchars($tanggal_filter) ?>" required>
                     </div>
                     <button type="submit" class="btn btn-primary">Filter</button>
                 </form>
@@ -188,43 +263,53 @@ $alpha_bulanan_percentage = ($total_siswa > 0) ? round(($alpha_bulanan_count / $
         </div>
         <div class="card mb-3">
             <div class="card-header">
-                <i class="fas fa-list-alt mr-2"></i> Absensi Siswa pada Tanggal <?= $tanggal_filter ?>
+                <i class="fas fa-list-alt mr-2"></i> Absensi Siswa pada Tanggal <?= htmlspecialchars($tanggal_filter) ?>
             </div>
             <div class="card-body">
-                <table class="table table-striped table-bordered">
-                    <thead>
-                        <tr>
-                            <th>No.</th>
-                            <th>Nama Siswa</th>
-                            <th>Status</th>
-                            <th>Tanggal</th>
-                            <?php if ($logged_in): ?>
-                            <th>Aksi</th>
-                            <?php endif; ?>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php $absensi_filter_index = 1; while ($row = $absensi_filter_result->fetch_assoc()) { ?>
-                        <tr>
-                            <td><?= $absensi_filter_index++ ?></td>
-                            <td><?= $row['nama'] ?></td>
-                            <td><?= $row['status'] ?></td>
-                            <td><?= $row['tanggal'] ?></td>
-                            <?php if ($logged_in): ?>
-                            <td>
-                                <a href="absensi.php?edit_absensi=<?= $row['id'] ?>&tanggal=<?= $tanggal_filter ?>" class="btn btn-warning btn-sm">Edit</a> |
-                                <a href="absensi.php?delete_absensi=<?= $row['id'] ?>&tanggal=<?= $tanggal_filter ?>" class="btn btn-danger btn-sm" onclick="return confirm('Yakin ingin menghapus?')">Hapus</a>
-                            </td>
-                            <?php endif; ?>
-                        </tr>
-                        <?php } ?>
-                    </tbody>
-                </table>
-            </div>
+    <table class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>No.</th>
+                <th>Nama Siswa</th>
+                <th>Foto</th>
+                <th>Status</th>
+                <th>Tanggal</th>
+                <?php if ($logged_in): ?>
+                <th>Aksi</th>
+                <?php endif; ?>
+            </tr>
+        </thead>
+        <tbody>
+            <?php $absensi_filter_index = 1; while ($row = $absensi_filter_result->fetch_assoc()) { ?>
+            <tr>
+                <td><?= $absensi_filter_index++ ?></td>
+                <td><?= htmlspecialchars($row['nama']) ?></td>
+                <td>
+                    <?php if (!empty($row['foto']) && file_exists("uploads/" . $row['foto'])): ?>
+                        <img src="uploads/<?= htmlspecialchars($row['foto']) ?>" alt="Foto <?= htmlspecialchars($row['nama']) ?>" class="student-photo" style="width: 50px; height: 50px; object-fit: cover; border-radius: 5px;">
+                    <?php else: ?>
+                        <div class="photo-placeholder" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; background: #f0f0f0; border-radius: 5px;">
+                            <i class="fas fa-user text-secondary"></i>
+                        </div>
+                    <?php endif; ?>
+                </td>
+                <td><?= htmlspecialchars($row['status']) ?></td>
+                <td><?= htmlspecialchars($row['tanggal']) ?></td>
+                <?php if ($logged_in): ?>
+                <td>
+                    <a href="absensi.php?edit_absensi=<?= (int)$row['id'] ?>&tanggal=<?= htmlspecialchars($tanggal_filter) ?>" class="btn btn-warning btn-sm">Edit</a> |
+                    <a href="absensi.php?delete_absensi=<?= (int)$row['id'] ?>&tanggal=<?= htmlspecialchars($tanggal_filter) ?>" class="btn btn-danger btn-sm" onclick="return confirm('Yakin ingin menghapus?')">Hapus</a>
+                </td>
+                <?php endif; ?>
+            </tr>
+            <?php } ?>
+        </tbody>
+    </table>
+</div>
         </div>
         <div class="card mb-3">
             <div class="card-header">
-                <i class="fas fa-chart-bar mr-2"></i> Presentase Kehadiran Siswa pada Tanggal <?= $tanggal_filter ?>
+                <i class="fas fa-chart-bar mr-2"></i> Presentase Kehadiran Siswa pada Tanggal <?= htmlspecialchars($tanggal_filter) ?>
             </div>
             <div class="card-body chart-container">
                 <canvas id="attendanceChartFilter" width="300" height="150"></canvas>
@@ -232,7 +317,7 @@ $alpha_bulanan_percentage = ($total_siswa > 0) ? round(($alpha_bulanan_count / $
         </div>
         <div class="card mb-3">
             <div class="card-header">
-                <i class="fas fa-chart-bar mr-2"></i> Presentase Kehadiran Siswa Bulan Ini (<?= $bulan_tahun ?>)
+                <i class="fas fa-chart-bar mr-2"></i> Presentase Kehadiran Siswa Bulan Ini (<?= htmlspecialchars($bulan_tahun) ?>)
             </div>
             <div class="card-body chart-container">
                 <canvas id="attendanceChartBulanan" width="300" height="150"></canvas>
@@ -253,12 +338,17 @@ $alpha_bulanan_percentage = ($total_siswa > 0) ? round(($alpha_bulanan_count / $
                         </tr>
                     </thead>
                     <tbody>
-                        <?php $siswa_index = 1; while ($row = $siswa_result->fetch_assoc()) { ?>
+                        <?php 
+                        // Reset cursor position for siswa_result
+                        $siswa_result->data_seek(0);
+                        $siswa_index = 1; 
+                        while ($row = $siswa_result->fetch_assoc()) { 
+                        ?>
                         <tr>
                             <td><?= $siswa_index++ ?></td>
-                            <td><?= $row['nama'] ?></td>
-                            <td><?= $row['kelas'] ?></td>
-                            <td><?= $row['jurusan'] ?></td>
+                            <td><?= htmlspecialchars($row['nama']) ?></td>
+                            <td><?= htmlspecialchars($row['kelas']) ?></td>
+                            <td><?= htmlspecialchars($row['jurusan']) ?></td>
                         </tr>
                         <?php } ?>
                     </tbody>
@@ -267,7 +357,7 @@ $alpha_bulanan_percentage = ($total_siswa > 0) ? round(($alpha_bulanan_count / $
         </div>
         <div class="card mb-3">
             <div class="card-header">
-                <i class="fas fa-calendar-check mr-2"></i> Absensi Siswa Hari Ini (<?= $tanggal_hari_ini ?>)
+                <i class="fas fa-calendar-check mr-2"></i> Absensi Siswa Hari Ini (<?= htmlspecialchars($tanggal_hari_ini) ?>)
             </div>
             <div class="card-body">
                 <table class="table table-striped table-bordered">
@@ -286,13 +376,13 @@ $alpha_bulanan_percentage = ($total_siswa > 0) ? round(($alpha_bulanan_count / $
                         <?php $absensi_hari_ini_index = 1; while ($row = $absensi_hari_ini_result->fetch_assoc()) { ?>
                         <tr>
                             <td><?= $absensi_hari_ini_index++ ?></td>
-                            <td><?= $row['nama'] ?></td>
-                            <td><?= $row['status'] ?></td>
-                            <td><?= $row['tanggal'] ?></td>
+                            <td><?= htmlspecialchars($row['nama']) ?></td>
+                            <td><?= htmlspecialchars($row['status']) ?></td>
+                            <td><?= htmlspecialchars($row['tanggal']) ?></td>
                             <?php if ($logged_in): ?>
                             <td>
-                                <a href="absensi.php?edit_absensi=<?= $row['id'] ?>&tanggal=<?= $tanggal_hari_ini ?>" class="btn btn-warning btn-sm">Edit</a> |
-                                <a href="absensi.php?delete_absensi=<?= $row['id'] ?>&tanggal=<?= $tanggal_hari_ini ?>" class="btn btn-danger btn-sm" onclick="return confirm('Yakin ingin menghapus?')">Hapus</a>
+                                <a href="absensi.php?edit_absensi=<?= (int)$row['id'] ?>&tanggal=<?= htmlspecialchars($tanggal_hari_ini) ?>" class="btn btn-warning btn-sm">Edit</a> |
+                                <a href="absensi.php?delete_absensi=<?= (int)$row['id'] ?>&tanggal=<?= htmlspecialchars($tanggal_hari_ini) ?>" class="btn btn-danger btn-sm" onclick="return confirm('Yakin ingin menghapus?')">Hapus</a>
                             </td>
                             <?php endif; ?>
                         </tr>
@@ -302,27 +392,24 @@ $alpha_bulanan_percentage = ($total_siswa > 0) ? round(($alpha_bulanan_count / $
             </div>
         </div>
         <script>
-            // Tampilkan alert selamat datang jika login berhasil
+            // Show welcome alert if login successful
             document.addEventListener('DOMContentLoaded', function() {
-                var loginSuccess = new URLSearchParams(window.location.search).get('login_success');
-                if (loginSuccess === 'true') {
-                    var alertContainer = document.createElement('div');
-                    alertContainer.className = 'alert alert-success alert-dismissible fade show';
-                    alertContainer.role = 'alert';
-                    alertContainer.innerHTML = 'Selamat datang! Selamat mengedit. <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>';
-                    document.querySelector('.main-content').prepend(alertContainer);
+                // Welcome alert is already handled by PHP, no need for duplicate
+                
+                // Fixed event listener - removed non-existent element reference
+                // and added proper check for logout button
+                var logoutBtn = document.querySelector('.logout-btn');
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', function(event) {
+                        event.preventDefault();
+                        if (confirm('Yakin ingin logout?')) {
+                            window.location.href = 'logout.php';
+                        }
+                    });
                 }
             });
 
-            // Konfirmasi logout
-            document.getElementById('logoutLink').addEventListener('click', function(event) {
-                event.preventDefault();
-                if (confirm('Yakin ingin logout?')) {
-                    window.location.href = 'logout.php';
-                }
-            });
-
-            // Diagram batang untuk presentase kehadiran berdasarkan tanggal yang dipilih
+            // Bar chart for attendance percentage based on selected date
             var ctxFilter = document.getElementById('attendanceChartFilter').getContext('2d');
             var attendanceChartFilter = new Chart(ctxFilter, {
                 type: 'bar',
@@ -343,14 +430,14 @@ $alpha_bulanan_percentage = ($total_siswa > 0) ? round(($alpha_bulanan_count / $
                         },
                         title: {
                             display: true,
-                            text: 'Presentase Kehadiran Siswa pada Tanggal <?= $tanggal_filter ?>'
+                            text: 'Presentase Kehadiran Siswa pada Tanggal <?= htmlspecialchars($tanggal_filter) ?>'
                         }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
                             ticks: {
-                                callback: function(value, index, values) {
+                                callback: function(value) {
                                     return value + '%';
                                 }
                             }
@@ -359,7 +446,7 @@ $alpha_bulanan_percentage = ($total_siswa > 0) ? round(($alpha_bulanan_count / $
                 }
             });
 
-            // Diagram batang untuk presentase kehadiran bulanan
+            // Bar chart for monthly attendance percentage
             var ctxBulanan = document.getElementById('attendanceChartBulanan').getContext('2d');
             var attendanceChartBulanan = new Chart(ctxBulanan, {
                 type: 'bar',
@@ -380,14 +467,14 @@ $alpha_bulanan_percentage = ($total_siswa > 0) ? round(($alpha_bulanan_count / $
                         },
                         title: {
                             display: true,
-                            text: 'Presentase Kehadiran Siswa Bulan Ini (<?= $bulan_tahun ?>)'
+                            text: 'Presentase Kehadiran Siswa Bulan Ini (<?= htmlspecialchars($bulan_tahun) ?>)'
                         }
                     },
                     scales: {
                         y: {
                             beginAtZero: true,
                             ticks: {
-                                callback: function(value, index, values) {
+                                callback: function(value) {
                                     return value + '%';
                                 }
                             }
