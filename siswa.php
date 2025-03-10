@@ -232,9 +232,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_siswa'])) {
     }
 }
 
-// Ambil Data Siswa
-$siswa_sql = "SELECT * FROM siswa ORDER BY nama ASC";
-$siswa_result = $conn->query($siswa_sql);
+// Get all available jurusan options
+$jurusan_options = ['RPL', 'MP', 'DKV 1', 'DKV 2', 'BR', 'AK'];
+
+// Get the selected filter
+$filter_jurusan = isset($_GET['filter_jurusan']) ? $_GET['filter_jurusan'] : '';
+
+// Ambil Data Siswa dengan filter jurusan
+if (!empty($filter_jurusan)) {
+    $siswa_sql = "SELECT * FROM siswa WHERE jurusan = ? ORDER BY nama ASC";
+    $stmt = $conn->prepare($siswa_sql);
+    $stmt->bind_param("s", $filter_jurusan);
+    $stmt->execute();
+    $siswa_result = $stmt->get_result();
+    $stmt->close();
+} else {
+    $siswa_sql = "SELECT * FROM siswa ORDER BY nama ASC";
+    $siswa_result = $conn->query($siswa_sql);
+}
+
 if (!$siswa_result) {
     $messages[] = ['type' => 'danger', 'text' => 'Gagal mengambil data siswa: ' . $conn->error];
 }
@@ -295,6 +311,13 @@ if (isset($_GET['success']) && $_GET['success'] == 'updated') {
         }
         .card {
             margin-bottom: 20px;
+        }
+        .filter-container {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
         }
     </style>
 </head>
@@ -362,18 +385,17 @@ if (isset($_GET['success']) && $_GET['success'] == 'updated') {
                         </select>
                     </div>
                     <div class="form-group col-md-6">
-    <label for="jurusan"><i class="fas fa-graduation-cap"></i> Jurusan</label>
-    <select class="form-control" id="jurusan" name="jurusan" required>
-        <option value="">Pilih Jurusan</option>
-        <?php 
-        $jurusan_options = ['RPL', 'MP', 'DKV 1', 'DKV 2', 'BR', 'AK'];
-        foreach ($jurusan_options as $option): 
-            $selected = (isset($edit_row) && $edit_row['jurusan'] == $option) ? 'selected' : '';
-        ?>
-            <option value="<?= $option ?>" <?= $selected ?>><?= $option ?></option>
-        <?php endforeach; ?>
-    </select>
-</div>
+                        <label for="jurusan"><i class="fas fa-graduation-cap"></i> Jurusan</label>
+                        <select class="form-control" id="jurusan" name="jurusan" required>
+                            <option value="">Pilih Jurusan</option>
+                            <?php 
+                            foreach ($jurusan_options as $option): 
+                                $selected = (isset($edit_row) && $edit_row['jurusan'] == $option) ? 'selected' : '';
+                            ?>
+                                <option value="<?= $option ?>" <?= $selected ?>><?= $option ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -402,10 +424,28 @@ if (isset($_GET['success']) && $_GET['success'] == 'updated') {
         </div>
     </div>
     
+    <!-- Filter Jurusan -->
+    <div class="filter-container">
+        <form method="GET" class="form-inline">
+            <div class="form-group mr-3">
+                <label for="filter_jurusan" class="mr-2"><i class="fas fa-filter"></i> Filter Jurusan:</label>
+                <select name="filter_jurusan" id="filter_jurusan" class="form-control mr-2" onchange="this.form.submit()">
+                    <option value="">Semua Jurusan</option>
+                    <?php foreach ($jurusan_options as $option): ?>
+                        <option value="<?= $option ?>" <?= ($filter_jurusan == $option) ? 'selected' : '' ?>><?= $option ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <?php if (!empty($filter_jurusan)): ?>
+                <a href="siswa.php" class="btn btn-outline-secondary"><i class="fas fa-times"></i> Reset Filter</a>
+            <?php endif; ?>
+        </form>
+    </div>
+    
     <!-- Tabel Data Siswa -->
     <div class="card">
         <div class="card-header bg-info text-white">
-            <i class="fas fa-table"></i> Daftar Siswa
+            <i class="fas fa-table"></i> Daftar Siswa <?= !empty($filter_jurusan) ? '- Jurusan ' . htmlspecialchars($filter_jurusan) : '' ?>
         </div>
         <div class="card-body">
             <?php if ($siswa_result && $siswa_result->num_rows > 0): ?>
@@ -456,7 +496,7 @@ if (isset($_GET['success']) && $_GET['success'] == 'updated') {
                 </div>
             <?php else: ?>
                 <div class="alert alert-info">
-                    Belum ada data siswa. Silakan tambahkan data baru.
+                    <?= !empty($filter_jurusan) ? 'Tidak ada data siswa untuk jurusan ' . htmlspecialchars($filter_jurusan) . '.' : 'Belum ada data siswa. Silakan tambahkan data baru.' ?>
                 </div>
             <?php endif; ?>
         </div>
