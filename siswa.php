@@ -308,7 +308,9 @@ if (isset($_GET['success']) && $_GET['success'] == 'updated') {
         <a href="siswa.php" class="active"><i class="fas fa-users mr-2"></i> Data Siswa</a>
         <a href="absensi.php"><i class="fas fa-calendar-check mr-2"></i> Absensi Siswa</a>
     </div>
-    <a href="logout.php" id="logoutLink" class="logout-btn"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
+    <button class="logout-btn" onclick="window.location.href='logout.php'">
+        <i class="fas fa-sign-out-alt"></i> Logout
+    </button>
 </div>
 <div class="main-content">
     <h1><i class="fas fa-users"></i> Data Siswa</h1>
@@ -360,18 +362,18 @@ if (isset($_GET['success']) && $_GET['success'] == 'updated') {
                         </select>
                     </div>
                     <div class="form-group col-md-6">
-                        <label for="jurusan"><i class="fas fa-graduation-cap"></i> Jurusan</label>
-                        <select class="form-control" id="jurusan" name="jurusan" required>
-                            <option value="">Pilih Jurusan</option>
-                            <?php 
-                            $jurusan_options = ['IPA', 'IPS', 'Bahasa', 'TKJ', 'RPL', 'Multimedia'];
-                            foreach ($jurusan_options as $option): 
-                                $selected = (isset($edit_row) && $edit_row['jurusan'] == $option) ? 'selected' : '';
-                            ?>
-                                <option value="<?= $option ?>" <?= $selected ?>><?= $option ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
+    <label for="jurusan"><i class="fas fa-graduation-cap"></i> Jurusan</label>
+    <select class="form-control" id="jurusan" name="jurusan" required>
+        <option value="">Pilih Jurusan</option>
+        <?php 
+        $jurusan_options = ['RPL', 'MP', 'DKV 1', 'DKV 2', 'BR', 'AK'];
+        foreach ($jurusan_options as $option): 
+            $selected = (isset($edit_row) && $edit_row['jurusan'] == $option) ? 'selected' : '';
+        ?>
+            <option value="<?= $option ?>" <?= $selected ?>><?= $option ?></option>
+        <?php endforeach; ?>
+    </select>
+</div>
                 </div>
                 
                 <div class="form-group">

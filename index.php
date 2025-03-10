@@ -158,6 +158,17 @@ $alpha_bulanan_percentage = ($total_siswa > 0) ? round(($alpha_bulanan_count / $
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
     <link href="assets/css/style.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .real-time-clock {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+            display: inline-block;
+        }
+    </style>
 </head>
 <body>
     <?php if ($logged_in): ?>
@@ -187,10 +198,20 @@ $alpha_bulanan_percentage = ($total_siswa > 0) ? round(($alpha_bulanan_count / $
             </button>
         </div>
         <?php endif; ?>
-        <h1 class="mb-4">Dashboard Absensi Siswa</h1>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Dashboard Absensi Siswa</h1>
+            <div class="real-time-clock" id="real-time-clock">
+                <i class="fas fa-clock mr-2"></i> <span id="current-time"></span>
+            </div>
+        </div>
         <?php if (!$logged_in): ?>
             <div class="text-center mb-4">
-                <a href="login.php" class="btn btn-primary">Login Admin</a>
+                <a href="login.php" class="btn btn-primary mr-2">
+                    <i class="fas fa-user-shield mr-1"></i> Login Admin
+                </a>
+                <a href="login_siswa.php" class="btn btn-success">
+                    <i class="fas fa-user-graduate mr-1"></i> Login Siswa
+                </a>
             </div>
         <?php endif; ?>
         <div class="row">
@@ -407,6 +428,28 @@ $alpha_bulanan_percentage = ($total_siswa > 0) ? round(($alpha_bulanan_count / $
                         }
                     });
                 }
+                
+                // Function to update real-time clock
+                function updateClock() {
+                    var now = new Date();
+                    var hours = now.getHours().toString().padStart(2, '0');
+                    var minutes = now.getMinutes().toString().padStart(2, '0');
+                    var seconds = now.getSeconds().toString().padStart(2, '0');
+                    var day = now.getDate().toString().padStart(2, '0');
+                    var month = (now.getMonth() + 1).toString().padStart(2, '0');
+                    var year = now.getFullYear();
+                    
+                    var timeString = hours + ':' + minutes + ':' + seconds;
+                    var dateString = day + '/' + month + '/' + year;
+                    
+                    document.getElementById('current-time').textContent = timeString + ' - ' + dateString;
+                    
+                    // Update every second
+                    setTimeout(updateClock, 1000);
+                }
+                
+                // Start the clock
+                updateClock();
             });
 
             // Bar chart for attendance percentage based on selected date
